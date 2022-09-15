@@ -1,0 +1,34 @@
+'****JS.OR_mult_E
+
+lst={}
+_lst_eKFD={}
+for each a in 0..(_nnz-1)
+  _lst_eKFD.Add(lst.clone)
+  for each p in 0..2
+    _lst_eKFD.Get(a).Add(_lst_Dns.Get(a)*_lst_jKFD.Get(a).Get(p))
+  end
+end
+
+'for each a in 0..(_nnz-1)
+'  lst=_lst_eKFD.Get(a).Clone
+'  lst.Sort(FALSE)
+'  mx=lst.Get(0)
+'  for each p in 0..2
+'    _lst_eKFD.Get(a).Set(p,_lst_eKFD.Get(a).Get(p)/mx)
+'  end
+'end
+
+
+for each p in 0..2
+  lst={}
+  for each a in 0..(_nnz-1)
+    lst.Add(_lst_eKFD.Get(a).Get(p))
+  end
+  lst.Sort(FALSE)
+  mx=lst.Get(0)
+  if (mx=0) then mx=1 end
+  for each a in 0..(_nnz-1)
+    _lst_eKFD.Get(a).Set(p,_lst_eKFD.Get(a).Get(p)/mx)
+  end
+  
+end

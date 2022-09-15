@@ -1,0 +1,115 @@
+'**JS.OR_Scal
+lst_KFD_n={"_UK_","_UF_","_UD_"}
+
+
+_lst_VnzA_t={}
+for each r in 0..(_nr-1)
+  _lst_VnzA_t.Add({}) 
+end
+
+if (_nProc=1) then
+  for each a in _Lst_nz
+    an=a.AsNumber
+    VTb1=av.FindDoc (_Pref+"_"+_V1+ lst_KFD_n.Get(_lstProc.Get(0)) +a+".dbf").GetVTab
+    IterFld1=VTb1.FindField("Iter_"+(_IterN+1).AsString)
+    for each r in 0..(_nr-1)
+       v=VTb1.ReturnValue(IterFld1,r)*_lstVA.Get(r).Get(an)
+       _lst_VnzA_t.Get(r).Add(v)
+    end
+  end
+
+elseif (_nProc=2) then
+  aa=0
+  for each a in _Lst_nz
+    an=a.AsNumber
+    VTb1=av.FindDoc (_Pref+"_"+_V1+lst_KFD_n.Get(_lstProc.Get(0))+a+".dbf").GetVTab
+    IterFld1=VTb1.FindField("Iter_"+(_IterN+1).AsString)
+    VTb2=av.FindDoc (_Pref+"_"+_V1+lst_KFD_n.Get(_lstProc.Get(1))+a+".dbf").GetVTab
+    IterFld2=VTb2.FindField("Iter_"+(_IterN+1).AsString)
+    
+    lstU={}
+    Sum=0
+    
+    p=_lstProc.Get(0)
+    RJ1=_lst_rKFD.Get(p) * _lst_jKFD.Get(aa).Get(p)
+    p=_lstProc.Get(1)  
+    RJ2=_lst_rKFD.Get(p) * _lst_jKFD.Get(aa).Get(p)
+    for each r in 0..(_nr-1)
+       u1=1+((VTb1.ReturnValue(IterFld1,r)-1)*RJ1)
+       u2=1+((VTb2.ReturnValue(IterFld2,r)-1)*RJ2)
+       usc=(u1*u2)^0.5
+       lstU.Add(usc)
+       Sum=Sum+(_lstVA.Get(r).Get(an)*usc)
+    end
+
+    for each r in 0..(_nr-1)
+       v=_lstPA.Get(an)*_lstVA.Get(r).Get(an)*lstU.Get(r)/Sum
+       _lst_VnzA_t.Get(r).Add(v)
+    end
+    aa=aa+1
+  end
+else '=====_nProc=3=======
+  aa=0
+  for each a in _Lst_nz
+    VTb1=av.FindDoc (_Pref+"_"+_V1+lst_KFD_n.Get(_lstProc.Get(0))+a+".dbf").GetVTab
+    IterFld1=VTb1.FindField("Iter_"+(_IterN+1).AsString)
+    VTb2=av.FindDoc (_Pref+"_"+_V1+lst_KFD_n.Get(_lstProc.Get(1))+a+".dbf").GetVTab
+    IterFld2=VTb2.FindField("Iter_"+(_IterN+1).AsString)
+    VTb3=av.FindDoc (_Pref+"_"+_V1+lst_KFD_n.Get(_lstProc.Get(2))+a+".dbf").GetVTab
+    IterFld3=VTb3.FindField("Iter_"+(_IterN+1).AsString)
+    
+    lstU={}
+    Sum=0
+    
+    p=_lstProc.Get(0)
+    RJ1=_lst_rKFD.Get(p) * _lst_jKFD.Get(aa).Get(p)
+    p=_lstProc.Get(1)  
+    RJ2=_lst_rKFD.Get(p) * _lst_jKFD.Get(aa).Get(p)
+    p=_lstProc.Get(2)  
+    RJ3=_lst_rKFD.Get(p) * _lst_jKFD.Get(aa).Get(p)
+    for each r in 0..(_nr-1)
+       u1=1+((VTb1.ReturnValue(IterFld1,r)-1)*RJ1)
+       u2=1+((VTb2.ReturnValue(IterFld2,r)-1)*RJ2)
+       u3=1+((VTb2.ReturnValue(IterFld2,r)-1)*RJ3)
+       usc=(u1*u2*u3)^0.33
+       lstU.Add(usc)
+       Sum=Sum+(_lstVA.Get(r).Get(a)*usc)
+    end
+
+    for each r in (_nr-1)
+       v=_lstPA.Get(a)*_lstVA.Get(r).Get(a)*lstU.Get(r)/Sum
+       _lst_VnzA_t.Get(r).Add(v)
+    end
+    
+    aa=aa+1
+  end
+
+end '=====end _nProc=1,2,3 =======
+
+aa=0
+for each a in _Lst_nz
+  VTbA=av.FindDoc (_Pref+"_"+_V1+"_Akt_Sc_"+a+".dbf").GetVTab
+  IterFldA=VTbA.FindField("Iter_"+(_IterN+1).AsString)
+  Sum=0
+  for each r in 0..(_Nr-1)
+    Sum=Sum+_lst_VnzA_t.Get(r).Get(aa)
+  end
+  Sum=_LstPA.Get(a.AsNumber)/Sum
+  VTbA.SetEditable(TRUE)
+  for each r in 0..(_Nr-1)
+    _lst_VnzA_t.Get(r).Set(aa,_lst_VnzA_t.Get(r).Get(aa)*Sum)
+    VTbA.SetValue(IterFldA,r,_lst_VnzA_t.Get(r).Get(aa) )
+  end
+
+
+  fldIter = Field.Make("Iter_"+(_IterN+2).AsString, #FIELD_DECIMAL, 8, 1)
+  fldIter.SetVisible( TRUE )
+  VTbA.AddFields({fldIter})
+  VTbA.SetEditable(FALSE)
+  
+  
+  aa=aa+1
+end
+
+
+

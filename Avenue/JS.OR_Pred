@@ -1,0 +1,39 @@
+'**JS.OR_Pred
+DMax=5
+Tb_Rej=av.FindDoc (_Pref+"_rej.dbf")
+VTb_Rej=Tb_Rej.GetVtab
+
+lstVVD={}
+
+CostD=0
+for each a in _Lst_nzn
+  CostDA=0
+  posA=_lst_pos_anz.Get(a)
+  fldPred=VTb_Rej.FindField("Pred_"+a.AsString)
+  lstPred={}
+  Sum=0
+  for each r in 0..(_nr-1)
+    D=VTb_Rej.ReturnValue(fldPred, r)
+    lstPred.Add(D)
+    Sum=Sum+(D*_lstVA.Get(r).Get(a))
+    CostDA=CostDA+(_lstVA.Get(r).Get(a)*(Dmax-D))
+  end
+  CostD=CostD+CostDA
+  VTb=av.FindDoc(_Pref+"_"+ _V1+"_UD_"+a.AsString+".dbf").GetVTab
+  fld=VTb.FindField("Iter_"+(_IterN+1).AsString)
+  VTb.SetEditable(True)
+  for each r in 0..(_nr-1)
+    VTb.SetValue(fld, r, _LstPA.Get(a)*lstPred.Get(r)/Sum)
+  end
+  
+  _VTb_Var.SetValue( _lst_fDc.Get(a),  _VTb_Var.GetNumRecords-1, CostDA)
+  
+  fldIter = Field.Make("Iter_"+(_IterN+2).AsString, #FIELD_DECIMAL, 6, 3)
+  fldIter.SetVisible( TRUE )
+  VTb.AddFields({fldIter})
+  VTb.SetEditable(False)
+
+end
+'MsgBox.Info(CostD.AsString,"KosztD") '@@@@@@@@@@
+_lst_K_Crnt.Set(2,CostD)
+_VTb_Var.SetValue( _lst_FVarKFD_k.Get(5),  _VTb_Var.GetNumRecords-1, CostD)

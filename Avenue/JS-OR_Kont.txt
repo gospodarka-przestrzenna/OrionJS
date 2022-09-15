@@ -1,0 +1,235 @@
+'**JS.OR_Kont
+
+'
+##########
+# PREFIX to identyfikator dla danej grupy danych ARBITRALNY 
+# Sa tu zawarte 
+Tb_Kon=av.FindDoc (_Pref+"_kon_lst.dbf")
+##########
+
+##########
+# Stworzenie tabeli z wczytanego pliku
+VTb_Kon=Tb_Kon.GetVtab
+##########
+
+
+##########
+# Stworzenie list z odpowiednich kolumn
+#
+fldKNodT=VTb_Kon.FindField("Net_Nod_Tb")
+#
+fldKZonT=VTb_Kon.FindField("Zon_Tb")
+#
+fldKZnDst=VTb_Kon.FindField("Zn_Dst_Fld")
+#
+fldKZnCost=VTb_Kon.FindField("Zn_Cst_Fld")
+
+'--------------------------------------  
+
+lstVVK={}
+lstUK={}
+
+###############
+# Inicjalizacja tablicy z wyzerowanymi polami 
+lst={}
+for each i in 0..(_Lst_nzn.Count-1)
+  lst.Add(0)
+end
+################
+
+#############
+# Sklonowanixp (skopiowanie 
+for each r in 0..(_nr-1)
+  lstVVK.Add(lst.DeepClone )
+  lstUK.Add(lst.DeepClone )
+end
+###############
+'for each r in 0..(_nr-1)
+'  MsgBox.ListAsString(lstVVK.Get(r),"","")
+'  MsgBox.ListAsString(_lstVA.Get(r),"","")
+'end
+
+eul=Number.GetEuler 
+CostK=0
+'************* begin cal
+
+for each k in 0..(_nk-1)
+  'MsgBox.Info("Nr_Kontaktu" ++k.AsString,"")
+
+  COSTK1=0
+  SUMK1=0
+  Sel=-(VTb_Kon.ReturnValue(VTb_Kon.FindField("Selekt"),k))
+  Nas=VTb_Kon.ReturnValue(VTb_Kon.FindField("Nasil"),k)
+  Kzk=VTb_Kon.ReturnValue(VTb_Kon.FindField("Kzk"),k)
+
+'---------------
+  VTb_Nod=av.FindDoc (VTb_Kon.ReturnValue(fldKNodT,k)).GetVtab
+  fldLoc=VTb_Nod.FindField("loc_Id")
+  lst={}
+  for each rec in VTb_Nod
+    lst.Add(VTb_Nod.ReturnValue(fldLoc,rec))
+  end
+  lstRPos={}
+  for each i in 0..(_nr-1)
+    pos=lst.FindByValue(i)
+    if (pos>= 0) then
+      lstRPos.Add(pos)
+    else
+      MsgBox.Error("Numeracja rejonow i wezlow potencjalowych sa niezgodne"++ i.AsString,"Kontakty")
+      Return NIL
+    end
+  end
+  lst=VTb_Nod.GetFields
+  Pat="Strefa_*".AsPAttern
+  Lst_Strf={}
+  for each fld in lst
+    if (fld.GetName=Pat) then
+      Lst_Strf.Add(fld)
+    end
+  end
+
+  VTb_Zon=av.FindDoc (VTb_Kon.ReturnValue(fldKZonT,k)).GetVtab
+  fld_Zon=VTb_Zon.FindField(VTb_Kon.ReturnValue(fldKZnDst,k))
+  fld_Cost=VTb_Zon.FindField(VTb_Kon.ReturnValue(fldKZnCost,k))
+  lstZon={}
+  lstCost={}
+  for each rec in VTb_Zon
+    i=VTb_Zon.ReturnValue(fld_Zon,rec)
+    if (i>0) then
+      lstZon.add(i)
+    end
+    j=VTb_Zon.ReturnValue(fld_Cost,rec)
+    if (j>0) then
+      lstCost.add(j)
+    end
+  end
+  lstZon.RemoveDuplicates
+  lstZon.Sort(TRUE)
+  lstCost.RemoveDuplicates
+  lstCost.Sort(TRUE)
+
+'-------------------
+  KZon= -1
+  for each j in lstZon
+    if (j>=kzk) then
+      break
+    end
+    KZon=KZon+1
+    
+  end
+
+  lst_ors=VTb_Kon.ReturnValue(VTb_Kon.FindField("akt_orig"),k).AsList
+  lst_orn={}
+  for each i in lst_ors
+    lst_orn.Add(i.AsNumber)
+  end
+
+  lst_dss=VTb_Kon.ReturnValue(VTb_Kon.FindField("akt_dest"),k).AsList
+  lst_dsn={}
+  for each i in lst_dss
+    lst_dsn.Add(i.AsNumber)
+  end
+  
+  lst_ds_nz={}
+  for each a in lst_dsn
+    if (_Lst_nzn.FindByValue(a) > -1) then
+      lst_ds_nz.Add(a)
+    end
+  end
+'-----------------------------------------
+  for each r in 0..(_nr-1)
+    Pr=1
+    SumP=0
+    VOr=0
+    for each a in lst_orn
+      '####### tu mozna zmienic Nas na indywidualny
+      VOr=VOr+(Nas*_lstVA.Get(r).Get(a))
+    end
+    if (VOr>0) then
+      for each strf in 0..KZon
+        lstDStrf=VTb_Nod.ReturnValue(Lst_Strf.Get(strf),lstRPos.Get(r)).AsList
+        '''''''MsgBox.Info(strf.AsString,"strefa")
+        if (lstDStrf.Count>0) then
+          for each i in 0..(lstDStrf.Count-1)
+            lstDStrf.Set(i,lstDStrf.Get(i).AsNumber)
+          end
+          SumS=0   '**** suma celow w strefie
+          for each rr in lstDStrf
+            for each aa in lst_dsn
+              SumS=SumS+_lstVA.Get(rr).Get(aa)
+            end
+          end
+          If (SumS>0) then
+            PrC=eul^(Sel*(SumP+SumS))
+            'MsgBox.Info((SumP+SumS).AsString++PrC.AsString++strf.AsString,k.AsString++r.AsString)
+            PrS=Pr-PrC
+            Vot=VOr*PrS     'Glos do strefy
+            COSTK1=COSTK1+(Vot*lstCost.Get(strf))
+            SUMK1=Sumk1+Vot
+            CostK=CostK+(Vot*lstCost.Get(strf)) 'Sumowanie kosztow kontaktow
+            'MsgBox.Info(Nas.AsString++PrS.AsString++Vot.AsString,"")
+            for each rr in lstDStrf
+              
+              for each aa in lst_ds_nz
+                posA=_lst_pos_anz.Get(aa)
+                lstVVK.Get(rr).Set(posA, lstVVK.Get(rr).Get(posA) + (Vot*_lstVA.Get(rr).Get(aa)/SumS))
+              end
+              
+            end
+            SumP=SumP+SumS
+            Pr=PrC
+          end 'SumS>0
+        end 'lstDStr.Count>0
+      end 'str
+    
+    end 'VOr>0
+  end 'rej origin
+'--------------------------------------
+''''''''''''''''MSGBOX.INFO(k.AsString++SUMK1.AsString++COSTK1.ASString,"")
+''''''''''''''''MSGBOX.Input ("kont:"++k.AsString, "", SUMK1.AsString+"   "+COSTK1.ASString)
+_VTb_Var.SetValue( _lst_fKn.Get(k),  _VTb_Var.GetNumRecords-1, SUMK1)
+_VTb_Var.SetValue( _lst_fKc.Get(k),  _VTb_Var.GetNumRecords-1, COSTK1)
+
+end 'kont
+
+'for each r in 0..(_nr-1)
+  'MsgBox.ListAsString(lstVVK.Get(r),"","")
+'end
+
+for each a in _Lst_nzn
+  Sum=0
+  posA=_lst_pos_anz.Get(a)
+  for each r in 0..(_nr-1)
+    Sum=Sum + lstVVK.Get(r).Get(posA)
+  end
+  for each r in 0..(_nr-1)
+    va= _lstVA.Get(r).Get(a)
+    if (va>0) then
+      lstUK.Get(r).Set(posA, lstVVK.Get(r).Get(posA)*_LstPA.Get(a)/(_lstVA.Get(r).Get(a)*Sum))
+    end
+  end
+end
+'for each r in 0..(_nr-1)
+'  MsgBox.ListAsString(lstUK.Get(r),"","")
+'end
+
+for each a in _Lst_nzn
+  posA=_lst_pos_anz.Get(a)
+  VTb=av.FindDoc(_Pref+"_"+ _V1+"_UK_"+a.AsString+".dbf").GetVTab
+  fld=VTb.FindField("Iter_"+(_IterN+1).AsString)
+  VTb.SetEditable(True)
+  for each r in 0..(_nr-1)
+    VTb.SetValue(fld, r, lstUK.Get(r).Get(posA))
+  end
+
+  fldIter = Field.Make("Iter_"+(_IterN+2).AsString, #FIELD_DECIMAL, 6, 3)
+  fldIter.SetVisible( TRUE )
+  VTb.AddFields({fldIter})
+
+  VTb.SetEditable(False)
+end
+'''''''''''''''''MsgBox.Info(CostK.AsString,"Koszt Kontaktow") '@@@@@@@@@@@@@@@@@@@
+_lst_K_Crnt.Set(0,CostK)
+_VTb_Var.SetValue( _lst_FVarKFD_k.Get(3),  _VTb_Var.GetNumRecords-1, CostK)
+'MsgBox.Info("END Kont","")
+Return NIL

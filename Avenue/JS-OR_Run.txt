@@ -1,0 +1,353 @@
+'**JS.OR_Run
+
+### 
+# ???
+V_pos=12
+
+LstD=av.GetProject.GetDocs 
+
+Lst={}
+Pat = "*_proj_lst.dbf".AsPattern
+for each aObj in LstD
+  if ((aObj.GetClass.GetClassName="Table") and (aObj.GetName=Pat)) then
+    Lst.Add(aObj)
+  end
+end
+Tb_Prj=MsgBox.ListAsString(Lst,"Wybierz tablice projektu","Projekt ORION")
+
+if (Tb_Prj = NIL) then Return NIL end
+_VTb_Prj=Tb_Prj.GetVtab
+fldN=_VTb_Prj.FindField("Name")
+fldS=_VTb_Prj.FindField("Symb")
+fldI=_VTb_Prj.FindField("Val_int")
+fldT=_VTb_Prj.FindField("Val_txt")
+fldD=_VTb_Prj.FindField("Val_dec")
+
+
+_Pref=_VTb_Prj.ReturnValue(fldT,0)
+_nr=_VTb_Prj.ReturnValue(fldI,1)
+_na=_VTb_Prj.ReturnValue(fldI,2)
+_nnz=_VTb_Prj.ReturnValue(fldI,3)
+_nk=_VTb_Prj.ReturnValue(fldI,4)
+_vc=_VTb_Prj.ReturnValue(fldD,5)
+
+_lst_K_Min={_VTb_Prj.ReturnValue(fldD,6),_VTb_Prj.ReturnValue(fldD,8),_VTb_Prj.ReturnValue(fldD,10)}
+_lst_K_Max={_VTb_Prj.ReturnValue(fldD,7),_VTb_Prj.ReturnValue(fldD,9),_VTb_Prj.ReturnValue(fldD,11)}
+_lst_K_Crnt={0,0,0}
+lst={}
+for each rec in V_pos..(_VTb_Prj.GetNumRecords-1)
+  if (_VTb_Prj.ReturnValue(fldS,rec)="V") then
+    lst.Add(_VTb_Prj.ReturnValue(fldN,rec))
+  end
+end
+
+
+
+'**tabl wariantow
+V=MsgBox.ListAsString(lst,"Wybierz wariant do obliczen", "ORION")
+_V1=_VTb_Prj.ReturnValue(fldT,V_pos+lst.FindByValue(V))
+
+_lst_KFD={}   '====lista wspolczynnikow procedur
+_lst_KFD.Add(V.Extract(1).BasicTrim ("K=", "").AsNumber)
+_lst_KFD.Add(V.Extract(2).BasicTrim ("F=", "").AsNumber)
+_lst_KFD.Add(V.Extract(3).BasicTrim ("D=", "").AsNumber)
+
+_nProc=0      '====liczba aktywnych procedur
+for each i in _lst_KFD
+  if (i>0) then 
+    _nProc=_nProc+1
+  end
+end
+
+if (_nProc=0) then
+  MsgBox.Error("Wszystkie procedury R-F-D sa wylaczone","ORION-Run")
+  Exit
+end
+
+_lstProc={}    '====lista aktywnych procedur
+for each i in 0..(_lst_KFD.count-1)
+  if (_lst_KFD.Get(i)>0) then 
+    _lstProc.Add(i.clone)
+  end
+end
+
+
+
+'**end tabl wariantow
+
+'**tabl var aggreg
+Tb_Var=av.FindDoc (_Pref+"_var_agr.dbf")
+_VTb_Var=Tb_Var.GetVtab
+_lst_FVarKFD_k={_VTb_Var.FindField("Id"), _VTb_Var.FindField("Name"), _VTb_Var.FindField("Iter")}
+
+lst={"Cost_K","Cost_F","Cost_D"}
+for each i in 0..2
+  _lst_FVarKFD_k.Add(_VTb_Var.FindField(lst.Get(i)))
+end
+_VTb_Var.SetEditable(TRUE)
+'**end tabl var aggreg
+
+
+_lst_fKn={}
+_lst_fKc={}
+for each k in 0..(_nk-1)
+  _lst_fKn.Add(_VTb_Var.FindField("K_"+k.AsString+"_numb"))
+  _lst_fKc.Add(_VTb_Var.FindField("K_"+k.AsString+"_cost"))
+end
+
+_lst_fDc={}
+for each a in 0..(_na-1)
+  _lst_fDc.Add(_VTb_Var.FindField("D_"+a.AsString+"_cost"))
+end
+
+_lst_fTr={}
+for each a in 0..(_na-1)
+  _lst_fTr.Add(_VTb_Var.FindField("T_"+a.AsString+"_reloc"))
+end
+
+'===========================================
+Tb_LAkt=av.FindDoc (_Pref+"_akt_lst.dbf")
+VTb_LAkt=Tb_LAkt.GetVtab
+fldMv=VTb_LAkt.FindField("Movable")
+fldDs=VTb_LAkt.FindField("Density")
+
+
+_Lst_nz={}
+_Lst_z={}
+for each i in 0..(_na-1)
+  j=VTb_LAkt.ReturnValue(fldMv,i)
+  if(j=1) then
+    _Lst_nz.Add(i.AsString)
+  else
+    _Lst_z.Add(i.AsString)
+  end
+end
+_Lst_nzn={}
+for each a in _Lst_nz
+ _Lst_nzn.Add(a.AsNumber)
+end
+
+_lst_pos_anz={}
+for each a in 0..(_na-1)
+  _lst_pos_anz.Add(NIL)
+end
+for each i in 0..(_Lst_nzn.Count-1)
+  _lst_pos_anz.Set(_Lst_nzn.Get(i),i)
+end
+
+_lst_Dns={}
+for each a in _Lst_nzn
+  _lst_Dns.Add(VTb_LAkt.ReturnValue(FldDs,a))  
+end
+
+
+Pat = "Iter_*".AsPattern
+'MsgBox.Info(_Pref+"_"+_V1+"_Akt_"+_Lst_nz.Get(0)+".dbf","")
+VTb=av.FindDoc (_Pref+"_"+_V1+"_Akt_"+_Lst_nz.Get(0)+".dbf").GetVTab
+Lst=VTb.GetFields
+lstIterFld={}
+for each Fld in Lst
+  if (Fld.GetName=Pat) then
+    lstIterFld.Add(Fld)
+  end
+end
+pIter=MsgBox.ListAsString(lstIterFld,"Wybierz rozmieszczenie poczatkowe","Run ORION").GetName.AsTokens("_").Get(1).AsNumber
+nIter=MsgBox.Input("Wprowadz liczbe iteracji do wykonania", "Run ORION", "1").AsNumber
+
+'******* usuwanie pol Iter_*
+'--------------------Akt
+for each a in _Lst_nz
+  VTb=av.FindDoc (_Pref+"_"+_V1+"_Akt_"+a+".dbf").GetVTab
+  Lst=VTb.GetFields
+  LstRmFld={}
+  for each Fld in Lst
+    FldN=Fld.GetName
+    if ((FldN=Pat)and (FldN.AsTokens("_").Get(1).AsNumber>pIter)) then
+      LstRmFld.Add(Fld)
+    end
+  end
+  If (LstRmFld.Count>0) then
+    VTb.SetEditable(True)
+       VTb.RemoveFields(LstRmFld)
+    VTb.SetEditable(False)
+  end
+end
+
+'--------------------Akt_Sc
+for each a in _Lst_nz
+  'MsgBox.Info(_Pref+"_"+_V1+"_Akt_Sc_"+a+".dbf","")
+  VTb=av.FindDoc (_Pref+"_"+_V1+"_Akt_Sc_"+a+".dbf").GetVTab
+  Lst=VTb.GetFields
+  LstRmFld={}
+  for each Fld in Lst
+    FldN=Fld.GetName
+    if ((FldN=Pat)and (FldN.AsTokens("_").Get(1).AsNumber>(pIter+1))) then
+      LstRmFld.Add(Fld)
+    end
+  end
+  If (LstRmFld.Count>0) then
+    VTb.SetEditable(True)
+       VTb.RemoveFields(LstRmFld)
+    VTb.SetEditable(False)
+  end
+end
+'--------------------K
+if (_lst_KFD.Get(0)>0) then
+  for each a in _Lst_nz
+    VTb=av.FindDoc (_Pref+"_"+_V1+"_UK_"+a+".dbf").GetVTab
+    Lst=VTb.GetFields
+    LstRmFld={}
+    for each Fld in Lst
+      FldN=Fld.GetName
+      if ((FldN=Pat)and (FldN.AsTokens("_").Get(1).AsNumber>(pIter+1))) then
+        LstRmFld.Add(Fld)
+      end
+    end
+    If (LstRmFld.Count>0) then
+      VTb.SetEditable(True)
+         VTb.RemoveFields(LstRmFld)
+      VTb.SetEditable(False)
+    end
+  end
+end
+'--------------------F
+if (_lst_KFD.Get(1)>0) then
+  for each a in _Lst_nz
+    VTb=av.FindDoc (_Pref+"_"+_V1+"_UF_"+a+".dbf").GetVTab
+    Lst=VTb.GetFields
+    LstRmFld={}
+    for each Fld in Lst
+      FldN=Fld.GetName
+      if ((FldN=Pat)and (FldN.AsTokens("_").Get(1).AsNumber>(pIter+1))) then
+        LstRmFld.Add(Fld)
+      end
+    end
+    If (LstRmFld.Count>0) then
+      VTb.SetEditable(True)
+         VTb.RemoveFields(LstRmFld)
+      VTb.SetEditable(False)
+    end
+  end
+end
+'--------------------D
+if (_lst_KFD.Get(2)>0) then
+  for each a in _Lst_nz
+    VTb=av.FindDoc (_Pref+"_"+_V1+"_UD_"+a+".dbf").GetVTab
+    Lst=VTb.GetFields
+    LstRmFld={}
+    for each Fld in Lst
+      FldN=Fld.GetName
+      if ((FldN=Pat)and (FldN.AsTokens("_").Get(1).AsNumber>(pIter+1))) then
+        LstRmFld.Add(Fld)
+      end
+    end
+    If (LstRmFld.Count>0) then
+      VTb.SetEditable(True)
+         VTb.RemoveFields(LstRmFld)
+      VTb.SetEditable(False)
+    end
+  end
+end
+'--------------------
+
+
+
+'===============================  
+Tb_Rej=av.FindDoc (_Pref+"_rej.dbf")
+VTb_Rej=Tb_Rej.GetVtab
+
+' *******Listy Rozm Aktywn
+lst_a={}
+for each a in 0..(_na-1)
+  lst_a.Add(a.AsString)
+end
+_lstVA={}
+for each r in 1.._nr
+  _lstVA.Add({}) 
+end
+
+for each a in lst_a
+  if (_Lst_nz.FindByValue (a)>(-1)) then
+    VTb=av.FindDoc(_Pref+"_"+ _V1+"_Akt_"+a+".dbf").GetVTab
+    xx=0
+    yy=0
+    fld=VTb.FindField("Iter_"+ pIter.AsString)
+  else
+    VTb= VTb_Rej
+    fld=VTb.FindField("Akt_"+a)
+  end
+  for each r in 0..(_nr-1)
+    _lstVA.Get(r).Add(VTb.ReturnValue(fld,r))
+  end
+end
+
+Tb_LAkt=av.FindDoc (_Pref+"_akt_lst.dbf")
+VTb_LAkt=Tb_LAkt.GetVtab
+fld=VTb_LAkt.FindField("Progr_Cal")
+_lstPA={}
+for each a in 0..(_na-1)
+  _lstPA.Add(VTb_LAkt.ReturnValue(fld,a))
+end
+'------------------------------------------
+'
+results = av.Run( "JS.OR_mult_J", {} )
+''''''''''''''''MsgBox.Info("End J","")
+results = av.Run( "JS.OR_mult_E", {} )
+''''''''''''''''MsgBox.Info("End E","")
+
+
+For each iter in piter..(pIter+nIter-1)
+  av.SetShowStatus (TRUE)
+  av.ShowMsg ("Iteracja:"++Iter.AsString)
+  progress = ((Iter-pIter)/(nIter-pIter)) * 100 
+  doMore = av.SetStatus( progress )
+
+  _iterN=iter
+  _iter=iter.AsString
+  rec=_VTb_Var.AddRecord
+  _VTb_Var.SetValue( _lst_FVarKFD_k.Get(0), rec, rec)
+  _VTb_Var.SetValue( _lst_FVarKFD_k.Get(1), rec, _Pref+"_"+ _V1)
+  _VTb_Var.SetValue( _lst_FVarKFD_k.Get(2), rec, _iterN)
+  
+  
+  if (_lst_KFD.Get(0)>0) then
+    results = av.Run( "JS.OR_Kont", {} )
+  end
+''''''''''''''''  MsgBox.Info("End K    iter:"+_Iter.AsString,"")
+  
+  if (_lst_KFD.Get(2)>0) then
+    results = av.Run( "JS.OR_Pred", {} )
+  end
+''''''''''''''''  MsgBox.Info("End D    iter:"+_Iter.AsString,"")
+  'Return Nil
+  
+  if (_lst_KFD.Get(1)>0) then
+    'results = av.Run( "JS.OR_Konf", {} )
+  end
+  
+  results = av.Run( "JS.OR_mult_R", {} )
+''''''''''''''''  MsgBox.Info("End R    iter:"+_Iter.AsString,"")
+  
+  results = av.Run( "JS.OR_Scal", {} )
+''''''''''''''''  MsgBox.Info("End Sc    iter:"+_Iter.AsString,"")
+' RETURN NIL
+
+  results = av.Run( "JS.OR_Ter", {} )
+  'MsgBox.Info("End T    iter:"+_Iter.AsString,"")
+
+  for each a in lst_a
+    if (_Lst_nz.FindByValue (a)>(-1)) then
+      VTb=av.FindDoc(_Pref+"_"+ _V1+"_Akt_"+a+".dbf").GetVTab
+      fld=VTb.FindField("Iter_"+ (iter+1).AsString)
+      an=a.AsNumber
+      for each r in 0..(_nr-1)
+        _lstVA.Get(r).Set(an,VTb.ReturnValue(fld,r))
+      end
+    end
+  end
+  if (not doMore) then
+    break
+  end
+end
+av.ClearMsg
+_VTb_Var.SetEditable(FALSE)

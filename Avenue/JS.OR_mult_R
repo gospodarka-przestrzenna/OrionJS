@@ -1,0 +1,47 @@
+'****JS.OR_mult_R
+
+'_lst_K_Crnt={2,3,4}
+lst_K_Mn=_lst_K_Min.Clone
+lst_K_Mx=_lst_K_Max.Clone
+
+_lst_rKFD={0,0,0}
+
+if (_nProc=1) then
+  _lst_rKFD.Set(_lstProc.Get(0),1)
+elseif (_nProc=2) then
+  R0=_lst_KFD.Get(_lstProc.Get(0))
+  R1=_lst_KFD.Get(_lstProc.Get(1))
+  
+  if (R0=R1) then
+    for each i in 0..(_nProc-1)
+      p=_lstProc.Get(i)
+      if (_lst_K_Crnt.Get(p) < _lst_K_Min.Get(p)) then
+        _lst_rKFD.Set(p,0)
+      elseif (_lst_K_Crnt.Get(p) > _lst_K_Max.Get(p)) then
+        _lst_rKFD.Set(p,1)
+      else
+        _lst_rKFD.Set(p,(_lst_K_Crnt.Get(p)-_lst_K_Max.Get(p))/(_lst_K_Min.Get(p)-_lst_K_Max.Get(p)))
+      end
+    end
+  else
+    if (R0>R1) then
+      lst_K_Mx.Set(0,lst_K_Mn.Get(0)+((lst_K_Mx.Get(0)-lst_K_Mn.Get(0))*R1))
+      lst_K_Mn.Set(2,lst_K_Mn.Get(2)+((lst_K_Mx.Get(2)-lst_K_Mn.Get(2))*(1-R1)))
+    else
+      lst_K_Mn.Set(0,lst_K_Mn.Get(0)+((lst_K_Mx.Get(0)-lst_K_Mn.Get(0))*(1-R1)))
+      lst_K_Mx.Set(2,lst_K_Mn.Get(2)+((lst_K_Mx.Get(2)-lst_K_Mn.Get(2))*R1))
+    end
+    for each i in 0..(_nProc-1)
+      p=_lstProc.Get(i)
+      if (_lst_K_Crnt.Get(p) < lst_K_Mn.Get(p)) then
+        _lst_rKFD.Set(p,0)
+      elseif (_lst_K_Crnt.Get(p) > lst_K_Mx.Get(p)) then
+        _lst_rKFD.Set(p,1)
+      else
+        _lst_rKFD.Set(p,(_lst_K_Crnt.Get(p)-lst_K_Mx.Get(p))/(lst_K_Mn.Get(p)-lst_K_Mx.Get(p)))
+      end
+    end
+    
+  end
+'elseif (_nProc=3) then
+end

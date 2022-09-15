@@ -1,0 +1,479 @@
+'**JS.OR_Datatab_Make
+
+FID="ID"            'Nr parametru, aktywnosci,
+FName="Name"        'Nazwa parametru, aktywnosci
+FSym="Symb"         'Nazwa1 parametru
+FDec="Val_dec"      'Wartosc numeryczna (l.rzeczywista)
+FInt="Val_int"      'Wartosc numeryczna (l.calkowita)
+FTxt="Val_txt"      'Wartosc tekstowa
+FFile="File_Name"   'Nazwa zbioru aktywnosci
+
+'aPr=av.GetProject
+
+'aView=av.GetActiveDoc
+'LstTh=aView.GetThemes
+
+'*****Przestrzen robocza i prefix*****
+
+PrN=av.GetProject.GetFileName 
+FNWrkDir=PrN.ReturnDir 
+'FNWrkDir=FileName.GetCWD 
+'MsgBox.listasstring({FNWrkDir},"","")
+YesNo=MsgBox.YesNo ("Przestrzen robocza projektu:"++FNWrkDir.GetName+NL+"Aby kontynuowac wcisnij YES", "Projekt", TRUE)
+if (YesNo=False) then return NIL end
+
+Pref=MsgBox.Input("Podaj prefix zbiorow","Projekt","DS1")
+
+'*****Tablica parametrow*****
+'(######jesli nie tworzysz nowej tablicy, czytaj nr,na,nzz,nk######)
+YesNo=True
+aNewFlN=FileName.Merge (FNWrkDir.GetName , Pref+"_proj_lst.dbf")
+class=dBASE
+'aNewFlN = FileDialog.Put(aNewFlN, "*.dbf", "Tabela Projektu")
+if (File.Exists (aNewFlN)) then
+  YesNo=MsgBox.YesNo ("Tablica parametrow projektu:"++aNewFlN.GetName++"istnieje"+NL+"Czy chcesz utworzyc nowa tabele?", "Projekt", TRUE)
+end
+if ((YesNo=true) and (aNewFlN <> nil)) then
+  VTbPro=VTab.MakeNew (aNewFlN, class)
+  if (VTbPro.HasError) then
+     if (VtbPro.HasLockError) then
+        MsgBox.Error("Unable to acquire Write Lock for file " + aNewFlN.GetBaseName, "")
+     else
+        MsgBox.Error("Unable to create " + aNewFlN.GetBaseName, "")
+     end
+     return nil
+  end
+  fldID = Field.Make(FID, #FIELD_DECIMAL, 3, 0)
+  fldID.SetVisible( TRUE )
+  VTbPro.AddFields({fldID})
+  
+  fldName = Field.Make(FName, #FIELD_CHAR, 25, 0)
+  fldName.SetVisible( TRUE )
+  VTbPro.AddFields({fldName})
+
+  fldSym = Field.Make(FSym, #FIELD_CHAR, 6, 0)
+  fldSym.SetVisible( TRUE )
+  VTbPro.AddFields({fldSym})
+
+  fldI = Field.Make(FInt, #FIELD_DECIMAL, 5, 0)
+  fldI.SetVisible( TRUE )
+  VTbPro.AddFields({fldI})
+  
+  fldD = Field.Make(FDec, #FIELD_DECIMAL, 15, 4)
+  fldD.SetVisible( TRUE )
+  VTbPro.AddFields({fldD})
+
+  fldT = Field.Make(FTxt, #FIELD_CHAR, 25, 0)
+  fldT.SetVisible( TRUE )
+  VTbPro.AddFields({fldT})
+
+  TbPro = Table.Make(VTbPro)
+  TbPro.SetName(VTbPro.GetName)
+
+  labels = { "Liczba rejonow", "Liczba aktywnosci", "Liczba aktywnosci niezd",
+             "Liczba kontaktow", "Wskaznik scinania (k.ter.)"}
+  labels1 = {"nr", "na", "nnz", "nk", "vc"}  
+  defaults = { "", "", "", ""}  
+      
+  LstPar=MsgBox.MultiInput ("Podaj parametry projektu", "Parametry", labels, defaults)
+  n_r=LstPar.Get(0).AsNumber
+  n_a=LstPar.Get(1).AsNumber
+  n_nz=LstPar.Get(2).AsNumber
+  n_k=LstPar.Get(3).AsNumber
+  vc=LstPar.Get(4).AsNumber
+  
+  RecNP=VTbPro.AddRecord
+  VTbPro.SetValue (fldID, RecNP, 0)
+  VTbPro.SetValue (fldName, RecNP, "Prefix projektu")
+  VTbPro.SetValue (fldSym, RecNP, "pref")
+  VTbPro.SetValue (fldT, RecNP, Pref)  
+  
+  for each i in 0..(LstPar.Count-1)
+    RecNP=VTbPro.AddRecord
+    VTbPro.SetValue (fldID, RecNP, RecNP)
+    VTbPro.SetValue (fldName, RecNP, labels.Get(i))
+    VTbPro.SetValue (fldSym, RecNP, labels1.Get(i))
+    if (i<4) then
+      VTbPro.SetValue (fldI, RecNP, LstPar.Get(i).AsNumber)
+    else
+      VTbPro.SetValue (fldD, RecNP, LstPar.Get(i).AsNumber)
+    end
+  end
+
+  labels = { "Koszt_K_Min", "Koszt_K_Max", "Koszt_F_Min",
+             "Koszt_F_Max", "Koszt_D_Min", "Koszt_D_Max"}
+  labels1 = {"kK_mn", "kK_mx", "kF_mn", "kF_mx", "kD_mn", "kD_mx"}  
+  
+  for each i in 0..(labels.Count-1)
+    RecNP=VTbPro.AddRecord
+    VTbPro.SetValue (fldID, RecNP, RecNP)
+    VTbPro.SetValue (fldName, RecNP, labels.Get(i))
+    VTbPro.SetValue (fldSym, RecNP, labels1.Get(i))
+  end
+
+  VTbPro.SetEditable(False)
+else
+  Tb_Prj=av.FindDoc (Pref+"_proj_lst.dbf")
+  VTb_Prj=Tb_Prj.GetVtab
+  fld=VTb_Prj.FindField("Val_Int")
+  n_r=VTb_Prj.ReturnValue(fld,1)
+  n_a=VTb_Prj.ReturnValue(fld,2)
+  n_nz=VTb_Prj.ReturnValue(fld,3)
+  n_k=VTb_Prj.ReturnValue(fld,4)
+    
+end
+
+
+'*****Tablica Aktywnosci*****
+YesNo=True
+aNewFlN=FileName.Merge (FNWrkDir.GetName , Pref+"_akt_lst.dbf")
+class=dBASE
+'aNewFlN = FileDialog.Put(aNewFlN, "*.dbf", "Tabela Projektu")
+if (File.Exists (aNewFlN)) then
+  YesNo=MsgBox.YesNo ("Tablica aktywnosci:"++aNewFlN.GetName++"istnieje"+NL+"Czy chcesz utworzyc nowa tabele?", "Projekt", TRUE)
+end
+if ((YesNo=true) and (aNewFlN <> nil)) then
+  VTbAkt=VTab.MakeNew (aNewFlN, class)
+  if (VTbAkt.HasError) then
+     if (VtbAkt.HasLockError) then
+        MsgBox.Error("Unable to acquire Write Lock for file " + aNewFlN.GetBaseName, "")
+     else
+        MsgBox.Error("Unable to create " + aNewFlN.GetBaseName, "")
+     end
+     return nil
+  end
+  
+  fldID = Field.Make(FID, #FIELD_DECIMAL, 3, 0)
+  fldID.SetVisible( TRUE )
+  VTbAkt.AddFields({fldID})
+  
+  fldName = Field.Make(FName, #FIELD_CHAR, 20, 0)
+  fldName.SetVisible( TRUE )
+  VTbAkt.AddFields({fldName})
+
+  fld = Field.Make("Movable", #FIELD_BYTE , 2, 0)
+  fld.SetVisible( TRUE )
+  VTbAkt.AddFields({fld})
+  
+  fld = Field.Make("Progr_User", #FIELD_DECIMAL , 8, 0)
+  fld.SetVisible( TRUE )
+  VTbAkt.AddFields({fld})
+  
+  fld = Field.Make("Progr_Cal", #FIELD_DECIMAL , 8, 0)
+  fld.SetVisible( TRUE )
+  VTbAkt.AddFields({fld})
+  
+  fld = Field.Make("Density", #FIELD_DECIMAL , 6, 3)
+  fld.SetVisible( TRUE )
+  VTbAkt.AddFields({fld})
+  
+'  fldFil = Field.Make(FFile, #FIELD_CHAR, 20, 0)
+'  fldFil.SetVisible( TRUE )
+'  VTbAkt.AddFields({fldFil})
+  
+  fld = Field.Make("Mult_JK", #FIELD_DECIMAL , 15, 10)
+  fld.SetVisible( TRUE )
+  VTbAkt.AddFields({fld})
+  
+  fld = Field.Make("Mult_JF", #FIELD_DECIMAL , 15, 10)
+  fld.SetVisible( TRUE )
+  VTbAkt.AddFields({fld})
+
+  fld = Field.Make("Mult_JD", #FIELD_DECIMAL , 15, 10)
+  fld.SetVisible( TRUE )
+  VTbAkt.AddFields({fld})
+
+  TbAkt = Table.Make(VTbAkt)
+  TbAkt.SetName(VTbAkt.GetName)
+   
+  for each i in 1..n_a
+    RecNA=VTbAkt.AddRecord
+    VTbAkt.SetValue (fldID, RecNA, RecNA)
+'''''    VTbAkt.SetValue (fldFil, RecNA, Pref+"_akt_"+RecNA.AsString+".dbf")
+  end 
+    
+  VTbAkt.SetEditable(False)
+end
+
+''*****Tablice Rozmieszczenia Aktywnosci*****
+'for each i in 0..(n_a-1)
+'  YesNo=True
+'  aNewFlN=FileName.Merge (FNWrkDir.GetName , Pref+"_akt_"+i.AsString+".dbf")
+'  class=dBASE
+'  'aNewFlN = FileDialog.Put(aNewFlN, "*.dbf", "Tabela Projektu")
+'  if (File.Exists (aNewFlN)) then
+'    YesNo=MsgBox.YesNo ("Tablica rozmieszczenia aktywnosci:"++aNewFlN.GetName++"istnieje"+NL+"Czy chcesz utworzyc nowa tabele?", "Projekt", TRUE)
+'  end
+'
+'  if ((YesNo=true) and (aNewFlN <> nil)) then
+'    VTbRAkt=VTab.MakeNew (aNewFlN, class)
+'    if (VTbAkt.HasError) then
+'       if (VtbRAkt.HasLockError) then
+'          MsgBox.Error("Unable to acquire Write Lock for file " + aNewFlN.GetBaseName, "")
+'       else
+'          MsgBox.Error("Unable to create " + aNewFlN.GetBaseName, "")
+'       end
+'       return nil
+'    end
+'    
+'    fldID = Field.Make(FID, #FIELD_DECIMAL, 3, 0)
+'    fldID.SetVisible( TRUE )
+'    VTbRAkt.AddFields({fldID})
+'    
+'    fldV = Field.Make("Orig_0", #FIELD_DECIMAL, 7, 1)
+'    fldV.SetVisible( TRUE )
+'    VTbRAkt.AddFields({fldV})
+'   
+'    TbRAkt = Table.Make(VTbRAkt)
+'    TbRAkt.SetName(VTbRAkt.GetName)
+'     
+'    for each i in 1..n_r
+'      RecNA=VTbRAkt.AddRecord
+'      VTbRAkt.SetValue (fldID, RecNA, RecNA)
+'    end 
+'      
+'    VTbAkt.SetEditable(False)
+'  end
+'
+'end
+
+'*****Tablica Rrejonow*****
+YesNo=True
+aNewFlN=FileName.Merge (FNWrkDir.GetName , Pref+"_rej.dbf")
+class=dBASE
+'aNewFlN = FileDialog.Put(aNewFlN, "*.dbf", "Tabela Projektu")
+if (File.Exists (aNewFlN)) then
+  YesNo=MsgBox.YesNo ("Tablica rejonow:"++aNewFlN.GetName++"istnieje"+NL+"Czy chcesz utworzyc nowa tabele?", "Projekt", TRUE)
+end
+if ((YesNo=true) and (aNewFlN <> nil)) then
+  VTbRej=VTab.MakeNew (aNewFlN, class)
+  if (VTbRej.HasError) then
+     if (VtbRej.HasLockError) then
+        MsgBox.Error("Unable to acquire Write Lock for file " + aNewFlN.GetBaseName, "")
+     else
+        MsgBox.Error("Unable to create " + aNewFlN.GetBaseName, "")
+     end
+     return nil
+  end
+  
+  fldID = Field.Make(FID, #FIELD_DECIMAL, 3, 0)
+  fldID.SetVisible( TRUE )
+  VTbRej.AddFields({fldID})
+  
+  fldName = Field.Make(FName, #FIELD_CHAR, 20, 0)
+  fldName.SetVisible( TRUE )
+  VTbRej.AddFields({fldName})
+
+  fldCh = Field.Make("Cap", #FIELD_DECIMAL, 8, 1)
+  fldCh.SetVisible( TRUE )
+  VTbRej.AddFields({fldCh})
+ 
+  fldArea = Field.Make("Area", #FIELD_DECIMAL, 8, 0)
+  fldArea.SetVisible( TRUE )
+  VTbRej.AddFields({fldArea})
+
+  for each i in 0..(n_a-1)
+    fld = Field.Make("Pred_"+i.AsString, #FIELD_DECIMAL, 4, 2)
+    fld.SetVisible( TRUE )
+    VTbRej.AddFields({fld})
+  end
+  
+  for each i in 0..(n_a-1)
+    fld = Field.Make("Akt_"+i.AsString, #FIELD_DECIMAL, 8, 1)
+    fld.SetVisible( TRUE )
+    VTbRej.AddFields({fld})
+  end
+
+  TbRej = Table.Make(VTbRej)
+  TbRej.SetName(VTbRej.GetName)
+   
+  for each i in 1..n_r
+    Rec=VTbRej.AddRecord
+    VTbRej.SetValue (fldID, Rec, Rec)
+  end 
+    
+  VTbRej.SetEditable(False)
+end
+
+'*****Tablica Kontaktow*****
+YesNo=True
+aNewFlN=FileName.Merge (FNWrkDir.GetName , Pref+"_kon_lst.dbf")
+class=dBASE
+'aNewFlN = FileDialog.Put(aNewFlN, "*.dbf", "Tabela Projektu")
+if (File.Exists (aNewFlN)) then
+  YesNo=MsgBox.YesNo ("Tablica kontaktow:"++aNewFlN.GetName++"istnieje"+NL+"Czy chcesz utworzyc nowa tabele?", "Projekt", TRUE)
+end
+if ((YesNo=true) and (aNewFlN <> nil)) then
+  VTbKon=VTab.MakeNew (aNewFlN, class)
+  if (VTbKon.HasError) then
+     if (VtbKon.HasLockError) then
+        MsgBox.Error("Unable to acquire Write Lock for file " + aNewFlN.GetBaseName, "")
+     else
+        MsgBox.Error("Unable to create " + aNewFlN.GetBaseName, "")
+     end
+     return nil
+  end
+  VTbKon.SetEditable(True)
+  
+  fldID = Field.Make(FID, #FIELD_DECIMAL, 3, 0)
+  fldID.SetVisible( TRUE )
+  VTbKon.AddFields({fldID})
+  
+  fldName = Field.Make(FName, #FIELD_CHAR, 25, 0)
+  fldName.SetVisible( TRUE )
+  VTbKon.AddFields({fldName})
+
+  fld = Field.Make("Selekt", #FIELD_DECIMAL, 8, 6)
+  fld.SetVisible( TRUE )
+  VTbKon.AddFields({fld})
+ 
+  fld = Field.Make("Nasil", #FIELD_DECIMAL, 8, 2)
+  fld.SetVisible( TRUE )
+  VTbKon.AddFields({fld})
+
+  fld = Field.Make("Kzk", #FIELD_DECIMAL, 3, 0)
+  fld.SetVisible( TRUE )
+  VTbKon.AddFields({fld})
+
+  fld = Field.Make("Akt_Orig", #FIELD_CHAR, 35, 0)
+  fld.SetVisible( TRUE )
+  VTbKon.AddFields({fld})
+
+  fld = Field.Make("Akt_Dest", #FIELD_CHAR, 35, 0)
+  fld.SetVisible( TRUE )
+  VTbKon.AddFields({fld})
+
+  fld = Field.Make("Net_Nod_Tb", #FIELD_CHAR, 30, 0)
+  fld.SetVisible( TRUE )
+  VTbKon.AddFields({fld})
+  
+  fld = Field.Make("Zon_Tb", #FIELD_CHAR, 30, 0)
+  fld.SetVisible( TRUE )
+  VTbKon.AddFields({fld})
+  
+  fld = Field.Make("Zn_Dst_Fld", #FIELD_CHAR, 10, 0)
+  fld.SetVisible( TRUE )
+  VTbKon.AddFields({fld})
+  
+  fld = Field.Make("Zn_Cst_Fld", #FIELD_CHAR, 10, 0)
+  fld.SetVisible( TRUE )
+  VTbKon.AddFields({fld})
+  
+  TbKon = Table.Make(VTbKon)
+  TbKon.SetName(VTbKon.GetName)
+   
+  for each i in 1..n_k
+    Rec=VTbKon.AddRecord
+    VTbKon.SetValue (fldID, Rec, Rec)
+  end 
+    
+  VTbKon.SetEditable(False)
+end
+
+
+'*****Tablica Kosztow i innych param*****
+YesNo=True
+aNewFlN=FileName.Merge (FNWrkDir.GetName , Pref+"_var_agr.dbf")
+class=dBASE
+if (File.Exists (aNewFlN)) then
+  YesNo=MsgBox.YesNo ("Tablica zmiennych zagregowanych:"++aNewFlN.GetName++"istnieje"+NL+"Czy chcesz utworzyc nowa tabele?", "Projekt", TRUE)
+end
+if ((YesNo=true) and (aNewFlN <> nil)) then
+  VTbVar=VTab.MakeNew (aNewFlN, class)
+  if (VTbVar.HasError) then
+     if (VTbVar.HasLockError) then
+        MsgBox.Error("Unable to acquire Write Lock for file " + aNewFlN.GetBaseName, "")
+     else
+        MsgBox.Error("Unable to create " + aNewFlN.GetBaseName, "")
+     end
+     return nil
+  end
+  
+  VTbVar.SetEditable(True)
+  
+  fldID = Field.Make(FID, #FIELD_DECIMAL, 3, 0)
+  fldID.SetVisible( TRUE )
+  VTbVar.AddFields({fldID})
+  
+  fldName = Field.Make(FName, #FIELD_CHAR, 25, 0)
+  fldName.SetVisible( TRUE )
+  VTbVar.AddFields({fldName})
+
+  fldIter = Field.Make("Iter", #FIELD_DECIMAL, 3, 0)
+  fldIter.SetVisible( TRUE )
+  VTbVar.AddFields({fldIter})
+
+  fld = Field.Make("Cost_K", #FIELD_DECIMAL, 14, 1)
+  fld.SetVisible( TRUE )
+  VTbVar.AddFields({fld})
+ 
+  fld = Field.Make("Cost_F", #FIELD_DECIMAL, 14, 1)
+  fld.SetVisible( TRUE )
+  VTbVar.AddFields({fld})
+
+  fld = Field.Make("Cost_D", #FIELD_DECIMAL, 14, 1)
+  fld.SetVisible( TRUE )
+  VTbVar.AddFields({fld})
+  
+  for each k in 0..(n_k-1)
+    fld = Field.Make("K_"+k.AsString+"_numb", #FIELD_DECIMAL, 9, 1)
+    fld.SetVisible( TRUE )
+    VTbVar.AddFields({fld})
+    fld = Field.Make("K_"+k.AsString+"_cost", #FIELD_DECIMAL, 14, 1)
+    fld.SetVisible( TRUE )
+    VTbVar.AddFields({fld})
+  end
+
+  for each a in 0..(n_a-1)
+    fld = Field.Make("D_"+a.AsString+"_cost", #FIELD_DECIMAL, 14, 1)
+    fld.SetVisible( TRUE )
+    VTbVar.AddFields({fld})
+  end
+
+  for each a in 0..(n_a-1)
+    fld = Field.Make("T_"+a.AsString+"_reloc", #FIELD_DECIMAL, 9, 1)
+    fld.SetVisible( TRUE )
+    VTbVar.AddFields({fld})
+  end
+
+  TbVar = Table.Make(VTbVar)
+  TbVar.SetName(VTbVar.GetName)
+
+  VTbVar.SetEditable(False)
+end
+
+'if (YNLoc) then
+'  aNewFlN=FileName.Merge (FileNodName.ReturnDir.GetFullName, BaseName1+"pot.shp")
+'  aNewFlN = FileDialog.Put(aNewFlN, "*.shp", "Nowy Temat - REJONY")
+'  
+'  class = Point
+'  if (aNewFlN <> nil) then
+'    aTbLoc = FTab.MakeNew(aNewFlN, class)
+'    if (aTbLoc.HasError) then
+'       if (aTbLoc.HasLockError) then
+'          MsgBox.Error("Unable to acquire Write Lock for file " + aNewFlN.GetBaseName, "")
+'       else
+'          MsgBox.Error("Unable to create " + aNewFlN.GetBaseName, "")
+'       end
+'       return nil
+'    end
+'    fldLID = Field.Make(FID, #FIELD_DECIMAL, 4, 0)
+'    fldLID.SetVisible( TRUE )
+'    aTbLoc.AddFields({fldLID})
+'    fldLNodeID = Field.Make(FNodeId, #FIELD_DECIMAL, 4, 0)
+'    fldLNodeID.SetVisible( TRUE )
+'    aTbLoc.AddFields({fldLNodeID})
+'  
+'    aTbLoc.SetEditable(False)
+'    aThLoc = FTheme.Make(aTbLoc)
+'    aView.AddTheme(aThLoc)
+'    aThLoc.SetActive(TRUE)
+'    aThLoc.SetVisible(TRUE)
+'    av.GetProject.SetModified(true)
+'  end
+'end
+'
+'
+'fldID=TbNod.FindField(FID)
+'fldNodeID=TbNod.FindField(FNodeID)
+'FldShp=TbNod.FindField("Shape")

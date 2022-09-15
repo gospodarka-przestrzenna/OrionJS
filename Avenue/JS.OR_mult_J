@@ -1,0 +1,16 @@
+'****JS.OR_mult_J
+
+Tb_LAkt=av.FindDoc (_Pref+"_akt_lst.dbf")
+VTb_LAkt=Tb_LAkt.GetVtab
+lst_fld={VTb_LAkt.FindField("Mult_JK"),
+         VTb_LAkt.FindField("Mult_JF"),
+         VTb_LAkt.FindField("Mult_JD")}
+lst={}
+_lst_jKFD={}
+for each a in 0..(_nnz-1)
+  _lst_jKFD.Add(lst.clone)
+  for each fld in lst_fld
+    _lst_jKFD.Get(a).Add(VTb_LAkt.ReturnValue(fld,_Lst_nzn.Get(a)))
+  end
+end
+
