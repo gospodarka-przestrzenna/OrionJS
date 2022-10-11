@@ -164,7 +164,7 @@ class PreCal(QAction):
                 end
             end
         #    MsgBox.Info(GKZ.AsString+"     "+GKC.AsString,a.AsString+"    GKZ, GKC")
-            LstGK.Add((GKZ+GKC)/SUMK)
+            LstGK.Add((GKZ+GKC)/(2*SUMK))
         end
         ###########MsgBox.ListAsString(LstGK,"GK_0","")
 
@@ -174,7 +174,7 @@ class PreCal(QAction):
             V1=V1+ (LstPC.Get(a)*LstGK.Get(a)) 
         end
         for a in AvIter(range(_na)):
-            LstGK.Set(a,LstGK.Get(a)/V1)
+            LstGK.Set(a,LstGK.Get(a)*3/V1)
         end
         lst=AvList([])
         for a in _Lst_nzn:

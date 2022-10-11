@@ -378,7 +378,8 @@ class Runner(QAction):
                 for a in AvIter(range(self._nnz)):
                     Sum=Sum+(self._lst_VnzA_t.Get(r).Get(a)/self._lst_Dns.Get(a))
                 end
-                Ocp=Sum/lst_Cap.Get(r)
+                # print("Zero?",Sum,lst_Cap.Get(r))
+                Ocp=(0 if Sum==0 else  Sum/lst_Cap.Get(r))
                 lst_Ocp.Add(Ocp)
                 if (Ocp>Ocp_mx) :
                     Ocp_mx=Ocp
@@ -568,7 +569,8 @@ class Runner(QAction):
                     for a in AvIter(range(self._nnz)):
                         Sum=Sum+(self._lst_VnzA_t.Get(r).Get(a)/self._lst_Dns.Get(a))
                     end
-                    Ocp=Sum/lst_Cap.Get(r)
+                    # print("Err",Sum,lst_Cap.Get(r))
+                    Ocp=(0 if Sum==0 else Sum/lst_Cap.Get(r))
                     lst_Ocp.Add(Ocp)
                     if (Ocp>Ocp_mx) :
                         Ocp_mx=Ocp
