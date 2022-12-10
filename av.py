@@ -164,7 +164,7 @@ class VTable(object):
             self.field_id={f.name:i for i,f in enumerate(self.fields)}
             
     def _add_field(self,f):
-        q="ALTER TABLE %s ADD COLUMN %s"%(self.name,f.name+' '+f.db_type)
+        q="ALTER TABLE '%s' ADD COLUMN %s"%(self.name,f.name+' '+f.db_type)
         self.av.con.execute(q)
         
         q='UPDATE gpkg_contents SET  last_change=? WHERE table_name=?' 
@@ -183,7 +183,7 @@ class VTable(object):
 
             for r in self.rows:
                 del(r[idx])
-            q='ALTER TABLE %s DROP COLUMN %s'%(self.name,f.name)
+            q="ALTER TABLE '%s' DROP COLUMN %s"%(self.name,f.name)
             self.av.con.execute(q)
         q='UPDATE gpkg_contents SET  last_change=? WHERE table_name=?' 
         self.av.con.execute(q,(datetime.now().isoformat(),self.name))       
@@ -211,9 +211,9 @@ class VTable(object):
         if not tf:
             self._save()
     def _save(self):
-        self.av.con.execute("DELETE FROM %s" % self.name)
+        self.av.con.execute("DELETE FROM '%s'" % self.name)
         self.av.con.commit()
-        insert = "INSERT INTO %s VALUES (%s)"%(
+        insert = "INSERT INTO '%s' VALUES (%s)"%(
             self.name,
             ','.join(['?' for f in self.fields])
         )
@@ -524,9 +524,9 @@ class TableMaker(object):
     def __init__(self,av):
         self.av=av
     def MakeNew(self,vTableName, cls):
-        q="DROP TABLE IF EXISTS %s"%vTableName
+        q="DROP TABLE IF EXISTS '%s'"%vTableName
         self.av.con.execute(q)
-        q="CREATE TABLE %s (ID INTEGER PRIMARY KEY)"%vTableName
+        q="CREATE TABLE '%s' (ID INTEGER PRIMARY KEY)"%vTableName
         self.av.con.execute(q)
         vt=VTable(vTableName,self.av,[MyField("ID")])
         q='DELETE FROM gpkg_contents WHERE table_name=?'
