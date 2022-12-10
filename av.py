@@ -315,7 +315,7 @@ class Av(object):
             self.con=sqlite3.connect(self.name)
         else:
             FNWrkDB=QFileDialog.getSaveFileName(None,caption="Choose file",
-                directory=os.path.expanduser("~/temp/test.gpkg"),filter="(*.gpkg *.sqlite)",
+                directory=os.path.expanduser("~/OrionJS.gpkg"),filter="(*.gpkg *.sqlite)",
                 options=QFileDialog.DontConfirmOverwrite
                 )
             self.name=FNWrkDB[0]
