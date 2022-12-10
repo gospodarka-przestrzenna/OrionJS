@@ -134,8 +134,8 @@ class DatabMake(QAction):
                 end
             end
 
-            labels = AvList({ "Koszt_K_Min", "Koszt_K_Max", "Koszt_F_Min",
-                                "Koszt_F_Max", "Koszt_D_Min", "Koszt_D_Max"})
+            labels = AvList([ "Koszt_K_Min", "Koszt_K_Max", "Koszt_F_Min",
+                                "Koszt_F_Max", "Koszt_D_Min", "Koszt_D_Max"])
             labels1 = AvList(["kK_mn", "kK_mx", "kF_mn", "kF_mx", "kD_mn", "kD_mx"])    
             
             for i in AvIter(range(labels.Count)):
