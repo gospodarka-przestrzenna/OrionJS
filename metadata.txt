@@ -2,7 +2,7 @@
 name=OrionJS
 about=This work is a rewrite of Avenue software version into QGis
 description=Analysis and prognosis making software
-version=0.0.1
+version=0.1.0
 qgisMinimumVersion=3.26
 qgisMaximumVersion=3.99
 
