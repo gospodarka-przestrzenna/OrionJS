@@ -13,7 +13,7 @@ class Runner(QAction):
     def __init__(self,plugin):
         super(Runner,self).__init__(
 			plugin.icon('runner.png'),
-			"Variant_Make",
+			"Run",
 			plugin.iface.mainWindow()
 	           )
         self.triggered.connect(self.run)
