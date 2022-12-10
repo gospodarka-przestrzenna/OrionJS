@@ -292,7 +292,7 @@ class Av(object):
     def AsPattern(self,pat):
         return re.compile(pat,flags=re.I)    
     def FindDoc(self,table):
-        cur=self.con.execute("SELECT * FROM %s ORDER BY ID"%table)
+        cur=self.con.execute("SELECT * FROM '%s' ORDER BY ID"%table)
         fields=[MyField(i[0]) for i in cur.description]
         
         vtable=VTable(table,self,fields)
@@ -315,7 +315,8 @@ class Av(object):
             self.con=sqlite3.connect(self.name)
         else:
             FNWrkDB=QFileDialog.getSaveFileName(None,caption="Choose file",
-                directory=os.path.expanduser("~/OrionJS.gpkg"),filter="(*.gpkg *.sqlite)",
+                directory=os.path.expanduser("~/OrionJS.gpkg"),
+                filter="(*.gpkg *.sqlite)",
                 options=QFileDialog.DontConfirmOverwrite
                 )
             self.name=FNWrkDB[0]
@@ -331,12 +332,16 @@ class Av(object):
             self.name=name
             self.con=sqlite3.connect(self.name)
         else:
-            FNWrkDB=QFileDialog.getOpenFileName(None,caption="Choose file",
-                directory=os.path.expanduser("~"),filter="(*.gpkg)",
-                options=QFileDialog.DontConfirmOverwrite
-                )
-            self.name=FNWrkDB[0]
-            self.con=spatialite_connect(self.name)
+            if(hasattr(self,'name') and self.name and MsgBox.YesNo("Ostatnio użyta baza to: <b>'%s'</b>. Czy mam jej teraz użyć?"%str(self.name),'Wybór bazy danych',TRUE)):
+                path = self.name
+                self.con=spatialite_connect(self.name)
+            else:     
+                FNWrkDB=QFileDialog.getOpenFileName(None,caption="Choose file",
+                    directory=os.path.expanduser("~"),filter="(*.gpkg)",
+                    options=QFileDialog.DontConfirmOverwrite
+                    )
+                self.name=FNWrkDB[0] 
+                self.con=spatialite_connect(self.name)
         try:
             self.con.execute("SELECT AutoGPKGStart()")
         except:
@@ -428,6 +433,11 @@ class MyMsgBox(object):
         msg.setText(title)
         msg.setInformativeText(text)
         msg.setStandardButtons( QMessageBox.No | QMessageBox.Yes )
+        if(default):
+            msg.setDefaultButton(QMessageBox.Yes)
+        else:
+            msg.setDefaultButton(QMessageBox.No)
+        
         return msg.exec_()==QMessageBox.Yes
     def Input(self,text,title,default):
         return AvVar(self.MultiInput(text,title,[""],[default])[0])
